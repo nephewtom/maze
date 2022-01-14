@@ -2,6 +2,7 @@
 function PlatformerGridCell() {
   this.wall = false;
   this.ceiling = false;
+  this.visited = false;
 }
 
 // Platformer node, a dynamic object in the grid
@@ -24,6 +25,10 @@ function PlatformerNode(x, y, width, height, color) {
 }
 
 PlatformerNode.prototype = {
+  playHit() {
+    var audio = new Audio('hit.wav');
+    audio.play();
+  },
   setvx(vx) {
     this.vx = vx;
   },
@@ -62,33 +67,28 @@ PlatformerNode.prototype = {
     return Math.floor((x + PlatformerGrid.prototype.EPSILON) / resolution);
   },
 
-  collideCellBottom(resolution) {
-    var audio = new Audio('hit.wav');
-    audio.play();
-    
+  collideCellBottom(resolution) {    
     this.vy = -this.vy * 0.2;
     this.y = this.getCellBottom(this.y, resolution) * resolution - this.height;
+    this.playHit();
   },
 
   collideCellTop(resolution) {
     this.vy = -this.vy * 0.2;
     this.y = this.getCellTop(this.yp, resolution) * resolution;
-    var audio = new Audio('hit.wav');
-    audio.play();    
+    this.playHit();
   },
 
   collideCellRight(resolution) {
     this.vx = -this.vx * 0.2;
     this.x = this.getCellRight(this.x, resolution) * resolution - this.width;
-    var audio = new Audio('hit.wav');
-    audio.play();
+    this.playHit();
   },
 
   collideCellLeft(resolution) {
     this.vx = -this.vx * 0.2;
     this.x = this.getCellLeft(this.xp, resolution) * resolution;
-    var audio = new Audio('hit.wav');
-    audio.play();
+    this.playHit();
   },
 
   limitXSpeed(timeStep) {
@@ -426,9 +426,6 @@ PlatformerGrid.prototype = {
       context.beginPath();
       context.rect(node.x, node.y, node.width, node.height);
       context.fill();
-
-      context.font = "16px Arial";
-      context.fillText("("+ node.x.toFixed(1)+","+node.y.toFixed(1)+")", node.x, node.y);
 
       helpCtx.font = "16px Arial";
       helpCtx.fillStyle = node.color;

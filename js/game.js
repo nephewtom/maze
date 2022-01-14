@@ -1,3 +1,19 @@
+const LeftCell = 0;
+const TopCell = 1;
+const RightCell = 2;
+const BottomCell = 3;
+
+function random(min, max) { // min and max included 
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+function middlePosition(distance) {
+
+  let middle = Math.floor(distance / 2);
+  let result = (distance % 2 == 0) ? random(middle-1, middle) : middle;
+  return result;
+}
+
 function Game() {
   var canvas = this.getCanvas();
   var helper = this.getHelper();
@@ -13,25 +29,35 @@ function Game() {
     Math.floor(canvas.height / this.GRID_RESOLUTION),
     this.GRID_RESOLUTION);
 
+  console.log("grid: w="+this.grid.width+", h="+this.grid.height);
+
+  // Complete grid with all walls and ceilings
   for(var x = 0; x < this.grid.width; ++x) {
-    this.grid.setCeiling(x, 0, true);    
-    this.grid.setCeiling(x, this.grid.height - 1, true);
+    for(var y = 0; y < this.grid.height; ++y) {
+      this.grid.setCeiling(x, y, true);    
+      this.grid.setWall(x, y, true);
+      var item  = { 'x' : x , 'y' : y, 'cell' : this.grid.getCell(x, y) };
+    }
   }
 
-  for(var y = 0; y < this.grid.height; ++y) {
-    this.grid.setWall(this.grid.width - 1, y, true);
-    this.grid.setWall(0, y, true);
-  }
+  // Generate maze
+  this.stack = new Stack();
+  this.mazeGenerate();
 
+  // Players and finish
   this.player = [];
-
-  this.player[0] = new PlatformerNode(0, 0, this.PLAYER_SIZE, this.PLAYER_SIZE, "orange");
+  this.player[0] = new PlatformerNode(2, 2, this.PLAYER_SIZE, this.PLAYER_SIZE, "orange");
   this.grid.addNode(this.player[0]);
-
-  this.player[1] = new PlatformerNode(canvas.width - this.PLAYER_SIZE, canvas.height - this.PLAYER_SIZE, this.PLAYER_SIZE, this.PLAYER_SIZE, "green");
+  this.player[1] = new PlatformerNode(canvas.width - this.PLAYER_SIZE - 2 , canvas.height - this.PLAYER_SIZE - 2, this.PLAYER_SIZE, this.PLAYER_SIZE, "green");
   this.grid.addNode(this.player[1]);
 
-  var finish = new PlatformerNode(320-16, 0, this.PLAYER_SIZE+2, this.PLAYER_SIZE, "red");
+
+
+  var fx = middlePosition(this.grid.width-1) * this.GRID_RESOLUTION;
+  var fy = middlePosition(this.grid.height-1) * this.GRID_RESOLUTION;
+  console.log("finish: fx="+fx+", fy="+fy);
+
+  var finish = new PlatformerNode(fx+4, fy+4, this.PLAYER_SIZE+2, this.PLAYER_SIZE, "red");
   finish.finish = true;
   this.grid.addNode(finish);
 
@@ -40,7 +66,7 @@ function Game() {
 
 Game.prototype = {
   GRID_RESOLUTION: 32,
-  PLAYER_SIZE: 32,
+  PLAYER_SIZE: 24,
   PAINT_STROKE_STYLE: "lime",
   ERASE_STROKE_STYLE: "red",
   PLAYER_WALK_SPEED: 270,
@@ -55,6 +81,86 @@ Game.prototype = {
   P2_KEY_UP: 38,
   P2_KEY_RIGHT: 39,
   P2_KEY_DOWN: 40,  
+
+  mazeGenerate() {
+    // https://en.wikipedia.org/wiki/Maze_generation_algorithm#Iterative_implementation
+    let rx= Math.floor(Math.random() * (this.grid.width-1));
+    let ry= Math.floor(Math.random() * (this.grid.height-1));
+    let initial  = { 'x' : rx , 'y' : ry, 'cell' : this.grid.getCell(rx, ry) };
+    initial.cell.visited = true;
+    this.stack.push(initial);
+
+    while (!this.stack.isEmpty()) {
+
+      let current = this.stack.pop();
+      let x = current.x;
+      let y = current.y;
+      //console.log("mazeGenerate: "+x+","+y);
+
+      if (!this.allNeighboursVisited(x, y)) {
+
+        this.stack.push(current);
+
+        let choosing = true;
+        while (choosing) {
+
+          let position = Math.floor(Math.random() * 4);
+          let neighbour = this.pickNeighbour(position, current);
+          //console.log("Choosing: "+neighbour.x+", "+neighbour.y);
+
+          if (neighbour.x > this.grid.width-2 || neighbour.x < 0 ||
+              neighbour.y < 0 || neighbour.y > this.grid.height-2) {
+            //console.log(" -> Out of grid!");
+            continue;
+          }
+
+          if (!neighbour.cell.visited) {
+            //console.log("Chose unvisited neighbour");
+            this.removeWall(position, current, neighbour)
+            neighbour.cell.visited = true;
+            this.stack.push(neighbour);
+            choosing = false;
+          }
+        }
+      } else {
+        //console.log("No more unvisited neighbour");
+      }
+    }
+  },
+
+  allNeighboursVisited(x, y) {
+
+    var leftNeighbour = (x > 0) ? this.grid.getCell(x-1, y).visited : true;
+    var upNeighbour = (y > 0) ? this.grid.getCell(x, y-1).visited : true;
+    var rightNeighbour = (x < this.grid.width-2) ? this.grid.getCell(x+1, y).visited : true;
+    var downNeighbour = (y < this.grid.height-2) ? this.grid.getCell(x, y+1).visited : true;
+    return leftNeighbour && upNeighbour && rightNeighbour && downNeighbour;
+  },
+
+  pickNeighbour(position, current) {
+    let dx = 0;
+    let dy = 0;
+    switch(position) { 
+      case(LeftCell): dx = -1; break;
+      case(TopCell): dy = -1; break;
+      case(RightCell): dx = 1; break;
+      case(BottomCell): dy = 1; break;
+    }
+
+    let nx = current.x + dx;
+    let ny = current.y + dy;
+    let neighbour = { 'x' : nx , 'y' : ny, 'cell' : this.grid.getCell(nx, ny) };
+    return neighbour;
+  },
+
+  removeWall(position, current, neighbour) {
+    switch(position) { 
+      case(LeftCell): current.cell.wall = false; break;
+      case(TopCell): current.cell.ceiling = false; break;
+      case(RightCell): neighbour.cell.wall = false; break;
+      case(BottomCell): neighbour.cell.ceiling = false; break;
+    }
+  },
 
   addListeners() {
     this.getCanvas().addEventListener("click", this.mouseClick.bind(this));
