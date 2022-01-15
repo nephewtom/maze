@@ -27,7 +27,8 @@ function PlatformerNode(x, y, width, height, color) {
 PlatformerNode.prototype = {
   playHit() {
     var audio = new Audio('hit.wav');
-    audio.play();
+    // audio.muted = true;
+    // audio.play();
   },
   setvx(vx) {
     this.vx = vx;
@@ -67,7 +68,7 @@ PlatformerNode.prototype = {
     return Math.floor((x + PlatformerGrid.prototype.EPSILON) / resolution);
   },
 
-  collideCellBottom(resolution) {    
+  collideCellBottom(resolution) {
     this.vy = -this.vy * 0.2;
     this.y = this.getCellBottom(this.y, resolution) * resolution - this.height;
     this.playHit();

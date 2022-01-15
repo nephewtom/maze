@@ -417,17 +417,39 @@ Game.prototype = {
       if (i == 0) { // Left Axes
           if (value > 0.25) {
             player.right = true;
+            this.playBip();
           } else {
             player.right = false;
           }
 
           if (value < -0.25) {
             player.left = true;
+            this.playBip();
           } else {
             player.left = false;
           }
       }
+      if (i == 1) { // Left Axes
+        if (value > 0.25) {
+          player.down = true;
+          this.playBip();
+        } else {
+          player.down = false;
+        }
+
+        if (value < -0.25) {
+          player.up = true;
+          this.playBip();
+        } else {
+          player.up = false;
+        }
+    }      
+
     }
+  },
+  playBip() {
+    var audio = new Audio('bip.wav');
+    //audio.play();
   },
   gamepadUpdate() {
     this.scangamepads();
