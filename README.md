@@ -1,8 +1,9 @@
 # Maze Game
-Building a maze game
+<p align=center> 
+<a href="https://tomasorti.github.io/maze">Play a random maze</a>
+</p>
 
-![a sample maze](./maze.png)
-
+![A sample maze](./maze.png)
 
 
 
