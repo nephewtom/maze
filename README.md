@@ -1,7 +1,7 @@
 # Maze Game
 Building a maze game
 
-![a sample maze](.\maze.png)
+![a sample maze](./maze.png)
 
 
 
